@@ -39,8 +39,8 @@
  * Desc: Use this function in your source code to log stuff.
  *       Different implementations allow to log to different locations.
  *       Having different libnames and log levels allow to filter the log.
- * Param-in libname: the library name that is resposible for this log entry.
- *                   (NULL: function will return immediately without logging)
+ * Param-in libname: the library name that is responsible for this log entry.
+ *                   (NULL: behavior is undefined)
  * Param-in level: the log level of this log entry (see helping defines in this file).
  * Param-in fmt,...: a format string for the actual log message (see ANSI-C standard / stdio.h / printf).
  * Return: void
