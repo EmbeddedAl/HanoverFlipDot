@@ -62,6 +62,7 @@
 #define LIB_HANOVER__TXBUFIDX_ADDRESS			2
 #define LIB_HANOVER__TXBUFIDX_LEN_MSB			3
 #define LIB_HANOVER__TXBUFIDX_LEN_LSB			4
+#define LIB_HANOVER__TXBUFIDX_DATA				5
 
 
 /* the handle definition for this implementation */
@@ -71,7 +72,7 @@ struct lib_hanover_handle {
 	uint16_t width;				    /* width of display in pixels              */
 	uint16_t height;				/* height of display in pixels             */
 	uint32_t bytesPerColumn;		/* bytes per column used                   */
-	uint32_t txDataLen;				/* length of payload data within a frame   */
+	uint32_t txPayloadLen;			/* length of payload data within a frame   */
 	uint32_t txBufferLen;			/* transmission buffer length              */
 	uint8_t *txBuffer;				/* transmission buffer for a full frame    */
 };
@@ -90,7 +91,7 @@ static int lib_hannover__create_checksum(lib_hanover_hdl hdl)
 	uint32_t idx;
 
 	/* checksum adding all header and data bytes */
-	for (idx = 0; idx < (LIB_HANOVER__LEN_HEADER + hdl->txDataLen); idx++)
+	for (idx = 0; idx < (LIB_HANOVER__LEN_HEADER + hdl->txPayloadLen); idx++)
 		chk_byte += hdl->txBuffer[idx];
 
 	//+1
@@ -109,6 +110,30 @@ static int lib_hannover__create_checksum(lib_hanover_hdl hdl)
 	return 0;
 }
 
+
+
+/* Func: lib_hannover__createChecksumAndWriteBuffer()
+ * Desc: Use the internal buffer, build the checksum and transmit it using serial interface
+ * Param-in hdl: the handle to be used
+ * Return: On success 0 is returned
+ *         -EFAULT: unknown internal error
+ *         -EIO: I/O error accessing the communication handle
+ */
+static int lib_hannover__createChecksumAndWriteBuffer(lib_hanover_hdl hdl)
+{
+	/* set write instruction */
+	hdl->txBuffer[LIB_HANOVER__TXBUFIDX_INS] = LIB_HANOVER__INS_WRITE;
+
+	/* build checksum */
+	if (lib_hannover__create_checksum(hdl) != 0)
+		return -EFAULT;
+
+	/* data transmission */
+	if (lib_serial_write(hdl->serial_hdl, hdl->txBuffer, hdl->txBufferLen) != 0)
+		return -EIO;
+
+	return 0;
+}
 
 
 
@@ -137,10 +162,10 @@ lib_hanover_hdl lib_hanover__create(lib_serial_hdl serial_hdl, uint8_t address, 
 		hdl->bytesPerColumn++;
 
 	/* the total length of payload to be transmitted to a display of this size */
-	hdl->txDataLen = (hdl->bytesPerColumn) * width;
+	hdl->txPayloadLen = (hdl->bytesPerColumn) * width;
 
 	/* the total length of a framed packet sent to a display of this size */
-	hdl->txBufferLen = LIB_HANOVER__LEN_HEADER + hdl->txDataLen + LIB_HANOVER__LEN_TRAILER;
+	hdl->txBufferLen = LIB_HANOVER__LEN_HEADER + hdl->txPayloadLen + LIB_HANOVER__LEN_TRAILER;
 	hdl->txBuffer = malloc(hdl->txBufferLen);
 	if (hdl->txBuffer == NULL)
 	{
@@ -151,12 +176,14 @@ lib_hanover_hdl lib_hanover__create(lib_serial_hdl serial_hdl, uint8_t address, 
 	/* initialize data buffer with constants */
 	hdl->txBuffer[LIB_HANOVER__TXBUFIDX_FRAME_START] 			= LIB_HANOVER__FRAME_START;
 	hdl->txBuffer[LIB_HANOVER__TXBUFIDX_ADDRESS] 				= lib_support__nibble2ascii(hdl->address + 1);
-	hdl->txBuffer[LIB_HANOVER__TXBUFIDX_LEN_MSB]				= lib_support__nibble2ascii(LIB_SUPPORT__NIBBLE_HI(hdl->txDataLen/2));
-	hdl->txBuffer[LIB_HANOVER__TXBUFIDX_LEN_LSB]				= lib_support__nibble2ascii(LIB_SUPPORT__NIBBLE_LO(hdl->txDataLen/2));
-	hdl->txBuffer[LIB_HANOVER__LEN_HEADER + hdl->txDataLen] 	= LIB_HANOVER__FRAME_END;
+	hdl->txBuffer[LIB_HANOVER__TXBUFIDX_LEN_MSB]				= lib_support__nibble2ascii(LIB_SUPPORT__NIBBLE_HI(hdl->txPayloadLen/2));
+	hdl->txBuffer[LIB_HANOVER__TXBUFIDX_LEN_LSB]				= lib_support__nibble2ascii(LIB_SUPPORT__NIBBLE_LO(hdl->txPayloadLen/2));
+	hdl->txBuffer[LIB_HANOVER__LEN_HEADER + hdl->txPayloadLen] 	= LIB_HANOVER__FRAME_END;
 
 	return hdl;
 }
+
+
 
 int lib_hanover__destroy(lib_hanover_hdl *hdl)
 {
@@ -179,29 +206,117 @@ int lib_hanover__destroy(lib_hanover_hdl *hdl)
 
 
 
-int lib_hanover__writeHanoverDataFormat(lib_hanover_hdl hdl, uint8_t *data, uint32_t len)
+uint32_t lib_hanover__getPayloadLengthHanoverFormat(lib_hanover_hdl hdl)
+{
+	/* hdl param check */
+	if (hdl == NULL)
+		return -EINVAL;
+
+	return hdl->txPayloadLen;
+}
+
+
+
+int lib_hanover__writePayloadHanoverFormat(lib_hanover_hdl hdl, uint8_t *data, uint32_t len)
 {
 	/* hdl param check */
 	if (hdl == NULL)
 		return -EINVAL;
 
 	/* len param check */
-	if (len != hdl->txDataLen)
+	if (len != hdl->txPayloadLen)
 		return -ENOEXEC;
 
-	/* set write instruction */
-	hdl->txBuffer[LIB_HANOVER__TXBUFIDX_INS] = LIB_HANOVER__INS_WRITE;
-
 	/* put in the raw data */
-	memcpy(&hdl->txBuffer[LIB_HANOVER__LEN_HEADER], data, len);
+	memcpy(&hdl->txBuffer[LIB_HANOVER__TXBUFIDX_DATA], data, len);
 
-	/* build checksum */
-	if (lib_hannover__create_checksum(hdl) != 0)
-		return -EFAULT;
+	return lib_hannover__createChecksumAndWriteBuffer(hdl);
+}
 
-	/* data transmission */
-	if (lib_serial_write(hdl->serial_hdl, hdl->txBuffer, hdl->txBufferLen) != 0)
-		return -EIO;
 
-	return 0;
+
+int lib_hanover__writePayloadRawFormat(lib_hanover_hdl hdl, uint8_t *rawdata, uint32_t rawlen, uint32_t rawwidth, uint32_t rawheigth, uint8_t invertColor)
+{
+	uint32_t hanoverColumnIdx;
+	uint32_t hanoverNibbleIdx;
+	uint8_t *tmpRawDataBuffer;
+	uint32_t i;
+	int ret_val;
+
+	/* hdl, rawdata param check */
+	if (hdl == NULL || rawdata == NULL)
+		return -EINVAL;
+
+	/* sanity check total lengths */
+	if ((rawwidth * rawheigth) != rawlen)
+		return -EPERM;
+
+	/* sanity check each length */
+	if ((rawwidth != hdl->width) || (rawheigth != hdl->height))
+		return -EPERM;
+
+	/* create a temp buffer not to modify the user's buffer */
+	tmpRawDataBuffer = malloc(rawlen);
+	if (tmpRawDataBuffer == NULL)
+		return -ENOMEM;
+
+	/* fill temp buffer as a copy of the user buffer */
+	memcpy(tmpRawDataBuffer, rawdata, rawlen);
+
+	/* invert color if required */
+	if (invertColor != 0)
+		for (i = 0; i < rawlen; i++)
+			tmpRawDataBuffer[i] = !tmpRawDataBuffer[i];
+
+	/* loop over all columns in Hanover data format (same number as display width) */
+	for (hanoverColumnIdx = 0; hanoverColumnIdx < hdl->width; hanoverColumnIdx++)
+	{
+		/* loop over all bytes in Hanover data format (one byte represents 4 vertical display dots of the same column) */
+		for (hanoverNibbleIdx = 0; hanoverNibbleIdx < hdl->bytesPerColumn; hanoverNibbleIdx++)
+		{
+			uint32_t hanoverArrayIdx = (hanoverColumnIdx * hdl->bytesPerColumn) + hanoverNibbleIdx;
+			uint8_t nibbleValue = 0;
+			uint8_t dotIterator;
+
+			/* form a byte containing 4 dots */
+			for (dotIterator = 0; dotIterator < 4; dotIterator++)
+			{
+				uint8_t dotValue;
+				uint32_t thisRowNumber;
+
+				/* the current row number is the first row number for this iteration plus the current iterator number */
+				thisRowNumber = (hanoverNibbleIdx * 4) + dotIterator;
+
+				/* if exceeding the displayable range, do nothing */
+				if (thisRowNumber > hdl->height)
+					continue;
+
+				/* extract the value for this dot */
+				dotValue = tmpRawDataBuffer[thisRowNumber * hdl->width + hanoverColumnIdx] ? 1 : 0;
+
+				/* put the extracted value for this dot to the nibble */
+				nibbleValue |= dotValue << dotIterator;
+			}
+
+			/* write to Hanover format array in ASCII format */
+			hdl->txBuffer[LIB_HANOVER__TXBUFIDX_DATA + hanoverArrayIdx] = lib_support__nibble2ascii(nibbleValue);
+
+			/* in case this was 'the 2nd' nibble, switch the 'endianess' by swapping the bytes */
+			if (hanoverArrayIdx % 2)
+			{
+				/* swap the bytes */
+				uint8_t backupByte = hdl->txBuffer[LIB_HANOVER__TXBUFIDX_DATA + hanoverArrayIdx - 1];
+				hdl->txBuffer[LIB_HANOVER__TXBUFIDX_DATA + hanoverArrayIdx - 1] = hdl->txBuffer[LIB_HANOVER__TXBUFIDX_DATA + hanoverArrayIdx];
+				hdl->txBuffer[LIB_HANOVER__TXBUFIDX_DATA + hanoverArrayIdx] = backupByte;
+			}
+		}
+	}
+
+	/* build checksum and transmit the data */
+	ret_val = lib_hannover__createChecksumAndWriteBuffer(hdl);
+
+	/* free the locally allocated buffer from above */
+	free(tmpRawDataBuffer);
+
+	return ret_val;
 }

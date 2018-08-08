@@ -56,8 +56,17 @@ lib_hanover_hdl lib_hanover__create(lib_serial_hdl serial_hdl, uint8_t address, 
 int lib_hanover__destroy(lib_hanover_hdl *hdl);
 
 
+/* Func: lib_hanover__getPayloadLengthHanoverFormat()
+ * Desc: Get the length of payload in Hanover Format.
+ * Param-in hdl: the handle used for display communication
+ * Return: On success the number of payload in hanover format is returned.
+ *         -EINVAL: invalid handle
+ */
+uint32_t lib_hanover__getPayloadLengthHanoverFormat(lib_hanover_hdl hdl);
 
-/* Func: lib_hanover__writeHanoverDataFormat()
+
+
+/* Func: lib_hanover__writePayloadHanoverFormat()
  * Desc: Writes display content in Hanover data format to display.
  * 		 The function will put the display content in Hanover format
  * 		 from 'data' in a frame of the Hanover frame format
@@ -66,7 +75,7 @@ int lib_hanover__destroy(lib_hanover_hdl *hdl);
  * 		 The finally framed buffer will be transmitted
  * 		 to the serial port of the handle.
  * Param-in hdl: the handle to be used for display communication
- * Param-in data: pointer to the raw data buffer to be transmitted
+ * Param-in data: pointer to the Hanover data buffer to be transmitted
  * Param-in len: length of bytes in data buffer to be transmitted
  * Return: On success 0 is returned
  *         -EINVAL: invalid handle
@@ -74,4 +83,22 @@ int lib_hanover__destroy(lib_hanover_hdl *hdl);
  *         -EFAULT: unknown internal error
  *         -EIO: I/O error accessing the communication handle
  */
-int lib_hanover__writeHanoverDataFormat(lib_hanover_hdl hdl, uint8_t *data, uint32_t len);
+int lib_hanover__writePayloadHanoverFormat(lib_hanover_hdl hdl, uint8_t *data, uint32_t len);
+
+/* Func: lib_hanover__writePayloadRawFormat()
+ * Desc: Writes display content in raw data format to display.
+ * Param-in hdl: the handle to be used for display communication
+ * Param-in rawdata: pointer to the raw data buffer to be transmitted
+ * Param-in rawlen: length of bytes in data buffer to be transmitted
+ * Param-in rawwidth: width of the image in pixel
+ * Param-in rawheigth: height of the image in pixel
+ * Param-in invertColor: true inverts the color of the output image
+ * Return: On success 0 is returned
+ *         -EINVAL: invalid handle
+ *         -ENOEXEC: incorrect buffer length for this display
+ *         -ENOMEM: no memory available for internal temp buffer creation
+ *         -EFAULT: unknown internal error
+ *         -EIO: I/O error accessing the communication handle
+ */
+int lib_hanover__writePayloadRawFormat(lib_hanover_hdl hdl, uint8_t *rawdata, uint32_t rawlen, uint32_t rawwidth, uint32_t rawheigth, uint8_t invertColor);
+
