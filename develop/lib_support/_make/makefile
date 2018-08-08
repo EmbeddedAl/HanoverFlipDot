@@ -1,5 +1,6 @@
 CC=arm-linux-gnueabihf-gcc
 CFLAGS=-I.
+CFLAGS+=-I../include
 
 lib_support.o : ../src/lib_support.c ../include/lib_support.h
 	$(CC) -c -o $@ $< $(CFLAGS)

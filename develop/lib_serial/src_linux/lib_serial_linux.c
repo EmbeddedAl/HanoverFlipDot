@@ -21,6 +21,7 @@
 
 /* includes */
 #include <lib_serial.h>
+#include <stdlib.h>
 #include <errno.h>
 
 

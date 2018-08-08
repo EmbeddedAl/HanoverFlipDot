@@ -1,5 +1,6 @@
 CC=arm-linux-gnueabihf-gcc
-CFLAGS=-I.
+CFLAGS=-I. 
+CFLAGS+=-I../include
 
 lib_serial.o : ../src_linux/lib_serial_linux.c ../include/lib_serial.h
 	$(CC) -c -o $@ $< $(CFLAGS)
