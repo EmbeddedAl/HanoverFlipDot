@@ -24,6 +24,12 @@
 #include <stdint.h>
 #include "lib_font__internal.h"
 
+/* Func: lib_font__standard__getFontHeight()
+ * Desc: Returns the font height
+ * Return: the font height
+ */
+uint16_t lib_font__standard__getFontHeight(void);
+
 /* Func: lib_font__standard__getCharInfo()
  * Desc: Returns the font info for the char requested
  * 		 Unsupported ascii codes will be treated as '?'.
