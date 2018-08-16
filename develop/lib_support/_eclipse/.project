@@ -39,5 +39,15 @@
 			<type>2</type>
 			<locationURI>$%7BPARENT-1-PROJECT_LOC%7D/src</locationURI>
 		</link>
+		<link>
+			<name>src_linux</name>
+			<type>2</type>
+			<locationURI>$%7BPARENT-1-PROJECT_LOC%7D/src_linux</locationURI>
+		</link>
+		<link>
+			<name>src_windows</name>
+			<type>2</type>
+			<locationURI>$%7BPARENT-1-PROJECT_LOC%7D/src_windows</locationURI>
+		</link>
 	</linkedResources>
 </projectDescription>

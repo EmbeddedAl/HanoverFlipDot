@@ -67,3 +67,9 @@ void lib_support__log(const char *libname, uint8_t level, const char *fmt, ...);
 uint8_t lib_support__nibble2ascii(uint8_t in);
 
 
+/* Func: lib_support__sleep()
+ * Desc: This function delays for a defined time
+ * Param-in ms: milliseconds to delay
+ * Return: void
+ */
+void lib_support__sleep(uint32_t ms);
