@@ -403,7 +403,7 @@ int lib_font__consecutivePutTextToBuffer(lib_font_consecutiveText_hdl hdl)
 	for (charPutCounter = 0; charPutCounter < numCharsToPrint; charPutCounter++)
 	{
 		uint8_t c = hdl->textBuffer[hdl->intProgressInfo];
-		putCharToBuffer(hdl->fB.frameBuffer, hdl->fB.frameBufferWidth, hdl->fB.frameBufferHeight, curX, curY, c);
+		lib_font__putCharToFrameBuffer(hdl->fB.frameBuffer, hdl->fB.frameBufferWidth, hdl->fB.frameBufferHeight, curX, curY, c);
 		hdl->intProgressInfo++;
 
 		// notsonice:
