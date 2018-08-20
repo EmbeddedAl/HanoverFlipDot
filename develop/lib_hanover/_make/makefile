@@ -5,9 +5,9 @@ CFLAGS+=-I../include
 CFLAGS+=-I../../lib_serial/include
 CFLAGS+=-I../../lib_support/include
 
-all: lib_hanover.a
+all: liblib_hanover.a
 
-lib_hanover.a : lib_hanover.o
+liblib_hanover.a : lib_hanover.o
 	$(AR) rcs $@ $<
 
 lib_hanover.o : ../src/lib_hanover.c ../include/lib_hanover.h
@@ -15,4 +15,4 @@ lib_hanover.o : ../src/lib_hanover.c ../include/lib_hanover.h
 
 clean:
 	rm lib_hanover.o
-	rm lib_hanover.a
+	rm liblib_hanover.a
