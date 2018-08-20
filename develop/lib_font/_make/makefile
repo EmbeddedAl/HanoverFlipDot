@@ -1,12 +1,17 @@
 CC=arm-linux-gnueabihf-gcc
+AR=arm-linux-gnueabihf-ar
 CFLAGS=-I.
 CFLAGS+=-I../include
 CFLAGS+=-I../inc
 
+all: lib_font.a
+
+lib_font.a : lib_font.o
+	$(AR) rcs $@ $<
+
 lib_font.o : ../src/lib_font.c ../src/lib_font__standard.c ../include/lib_font.h ../inc/lib_font__internal.h ../inc/lib_font__standard.h
 	$(CC) -c -o $@ $< $(CFLAGS)
 
-all: lib_font.o
-
 clean:
 	rm lib_font.o
+	rm lib_font.a
