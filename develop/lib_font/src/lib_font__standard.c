@@ -22,7 +22,7 @@
 /* includes */
 #include <stdio.h>
 #include <stdint.h>
-#include "lib_font__internal.h"
+#include "lib_font__standard.h"
 
 #define LIB_FONT__STANDARD__FONT_HEIGHT 	14
 
@@ -1649,15 +1649,35 @@ static fontInfo_t s_lib_font__standard__Descriptors[] =
 	{9,  LIB_FONT__STANDARD__FONT_HEIGHT, &s_lib_font__standard__Bitmaps[1470]}, 		/* ~ */
 };
 
+static uint8_t lib_font__isCharSupported(char c)
+{
+	/* all printable chars are supported ... */
+	if(lib_font__standard__isCharPrintable(c))
+		return 1;
+
+	/* ... and the space char */
+	if (c == ' ')
+		return 1;
+
+	return 0;
+}
+
 uint16_t lib_font__standard__getFontHeight(void)
 {
 	return LIB_FONT__STANDARD__FONT_HEIGHT;
 }
 
+uint8_t lib_font__standard__isCharPrintable(char c)
+{
+	if (c <= ' ' || c > '~')
+		return 0;
+	return 1;
+}
+
 fontInfo_t lib_font__standard__getCharInfo(char inChar)
 {
 	/* unsupported chars shall be treated as '?' */
-	if ((inChar < ' ') || (inChar > '~'))
+	if (lib_font__isCharSupported(inChar) == 0)
 		inChar = '?';
 	
 	return s_lib_font__standard__Descriptors[inChar - ' '];

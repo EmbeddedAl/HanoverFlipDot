@@ -30,6 +30,12 @@
  */
 uint16_t lib_font__standard__getFontHeight(void);
 
+/* Func: lib_font__standard__isCharPrintable()
+ * Desc: Returns 1 if char is printable, 0 otherwise
+ * Return: 1: char is printable, 0 otherwise
+ */
+uint8_t lib_font__standard__isCharPrintable(char c);
+
 /* Func: lib_font__standard__getCharInfo()
  * Desc: Returns the font info for the char requested
  * 		 Unsupported ascii codes will be treated as '?'.

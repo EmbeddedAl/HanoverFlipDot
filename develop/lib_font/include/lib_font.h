@@ -24,7 +24,14 @@
 #include <stdint.h>
 
 
-/* Func: putCharToFrameBuffer()
+typedef struct lib_font__framebuffer
+{
+	uint8_t *frameBuffer;
+	uint16_t frameBufferWidth;
+	uint16_t frameBufferHeight;
+} lib_font__framebuffer_t;
+
+/* Func: lib_font__putCharToFrameBuffer()
  * Desc: Puts a desired character to a framebuffer at a certain position
  * Param-in/out frameBuffer: the start address of the framebuffer
  * Param-in frameBufferWidth: the total width of the framebuffer (in bytes)
@@ -38,4 +45,42 @@
  *         -ENOSPC: frameBuffer at desired position is too small for the character
  *         -ENOMEM: temporary memory allocation failed (internal error)
  */
-int putCharToFrameBuffer(uint8_t *frameBuffer, uint16_t frameBufferWidth, uint16_t frameBufferHeight, uint16_t dstWidth, uint16_t dstHeight, char inChar);
+int lib_font__putCharToFrameBuffer(uint8_t *frameBuffer, uint16_t frameBufferWidth, uint16_t frameBufferHeight, uint16_t dstWidth, uint16_t dstHeight, char inChar);
+
+/* opaque pointer to a handle for outputting consecutive text */
+typedef struct lib_font_consecutiveText_handle *lib_font_consecutiveText_hdl;
+
+/* Func: lib_font__consecutiveText_Create()
+ * Desc: // todo
+ *       // frame buffer must be valid during lifetime of this object
+ *       // textBuffer will be copied internally and may be invalidated after Create-Call
+ *       // // TODO: develop concept for sanity and length checks
+ * Param-in framebuffer: // todo
+ * Param-in textBuffer: // todo
+ * Param-in textLen: // todo
+ * Param-in optCenterHoizontal: // todo
+ * Param-in optCenterVertical: // todo
+ * Param-in optFrameTheText: // todo
+ * Return: // todo
+ */
+lib_font_consecutiveText_hdl lib_font__consecutiveText_Create(	lib_font__framebuffer_t framebuffer,
+																const char *textBuffer,
+																const char textLen,
+																uint8_t optCenterHoizontal,
+																uint8_t optCenterVertical,
+																uint8_t optFrameTheText);
+
+/* Func: lib_font__consecutivePutTextToBuffer()
+ * Desc: // todo
+ * Param-in hdl: // todo
+ * Return: // todo
+ */
+int lib_font__consecutivePutTextToBuffer(lib_font_consecutiveText_hdl hdl);
+
+/* Func: lib_font__consecutiveText_Destroy()
+ * Desc: // todo
+ * Param-in hdl: // todo
+ * Return: // todo
+ */
+int lib_font__consecutiveText_Destroy(lib_font_consecutiveText_hdl *hdl);
+
