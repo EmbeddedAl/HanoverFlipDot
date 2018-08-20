@@ -1649,6 +1649,10 @@ static fontInfo_t s_lib_font__standard__Descriptors[] =
 	{9,  LIB_FONT__STANDARD__FONT_HEIGHT, &s_lib_font__standard__Bitmaps[1470]}, 		/* ~ */
 };
 
+uint16_t lib_font__standard__getFontHeight(void)
+{
+	return LIB_FONT__STANDARD__FONT_HEIGHT;
+}
 
 fontInfo_t lib_font__standard__getCharInfo(char inChar)
 {
