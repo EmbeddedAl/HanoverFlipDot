@@ -15,12 +15,13 @@
  *  You should have received a copy of the GNU General Public License
  *  along with HanoverFlipDot. If not, see <https://www.gnu.org/licenses/>.
  *
- *  Creation: 2018-08-16, @EmbeddedAl
+ *  Creation: 2018-10-06, @EmbeddedAl
  */
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
 
 #include "lib_font.h"
 #include "lib_hanover.h"
@@ -33,22 +34,21 @@ static uint32_t    s_ArgBaud;
 static uint16_t    s_ArgWidth;
 static uint16_t    s_ArgHeight;
 static uint8_t     s_ArgAddr;
-static const char *s_ArgInput;
 
 /* static variables and handles for the application */
 lib_serial_hdl          s_hdl_serial;
 lib_hanover_hdl         s_hdl_hanover;
 lib_font__framebuffer_t s_lib_font_fb;
 
-static int app_demo_HelloWorld__readParams(int argc, char *argv[])
+static int app_demo_Watch__readParams(int argc, char *argv[])
 {
 	// parameter sanity
-	if (argc != 7)
+	if (argc != 6)
 	{
 		printf("Incorrect usage:\r\n");
-		printf(" Usage Params: PORT BAUD WIDTH HEIGTH ADDRESS TEXT\r\n");
-		printf(" Example Windows: app.exe COM8 4800 112 16 1 \"Text To Print\"\r\n");
-		printf(" Example Linux: ./app /dev/ttyUSB0 4800 112 16 1 \"Text To Print\"\r\n");
+		printf(" Usage Params: PORT BAUD WIDTH HEIGTH ADDRESS\r\n");
+		printf(" Example Windows: app.exe COM8 4800 112 16 1 \r\n");
+		printf(" Example Linux: ./app /dev/ttyUSB0 4800 112 16 1 \r\n");
 		printf(" Typical for small display    28x13 @3 \r\n");
 		printf(" Typical for med.  display    112x16 @1 \r\n");
 		return 1;
@@ -59,14 +59,13 @@ static int app_demo_HelloWorld__readParams(int argc, char *argv[])
 	s_ArgWidth  = atoi(argv[3]);
 	s_ArgHeight = atoi(argv[4]);
 	s_ArgAddr   = atoi(argv[5]);
-	s_ArgInput  = argv[6];
 
 	printf("Entering main() on port %s,%u with %ux%u@%u (WxH@Addr)\r\n", s_ArgPort, s_ArgBaud, s_ArgWidth, s_ArgHeight, s_ArgAddr);
 
 	return 0;
 }
 
-static int app_demo_HelloWorld__initialize(void)
+static int app_demo_Watch__initialize(void)
 {
 	/* create and open serial port */
 	s_hdl_serial = lib_serial_create(s_ArgPort);
@@ -90,7 +89,7 @@ static int app_demo_HelloWorld__initialize(void)
 	return 0;
 }
 
-static int app_demo_HelloWorld__shutdown(void)
+static int app_demo_Watch__shutdown(void)
 {
 	/* free the framebuffer */
 	if (s_lib_font_fb.frameBuffer)
@@ -106,7 +105,7 @@ static int app_demo_HelloWorld__shutdown(void)
 	return 0;
 }
 
-static int app_demo_HelloWorld__writeFbToHanoverWrapper(uint8_t invertColor)
+static int app_demo_Watch__writeFbToHanoverWrapper(uint8_t invertColor)
 {
 	return lib_hanover__writePayloadRawFormat(s_hdl_hanover,
 			                                  s_lib_font_fb.frameBuffer,
@@ -116,14 +115,14 @@ static int app_demo_HelloWorld__writeFbToHanoverWrapper(uint8_t invertColor)
 											  invertColor);
 }
 
-static int app_demo_HelloWorld__writeText(void)
+static void app_demo_Watch__putText(char *text)
 {
 	lib_font_consecutiveText_hdl lib_font_cThdl;
 	int cTstatus;
 	uint8_t invertColor = 0;
 
 	/* initialize the consecutiveText handle */
-	lib_font_cThdl = lib_font__consecutiveText_Create(s_lib_font_fb, s_ArgInput, strlen(s_ArgInput), 1, 0, 1);
+	lib_font_cThdl = lib_font__consecutiveText_Create(s_lib_font_fb, text, strlen(text) -1 , 1, 0, 1);
 
 	/* print as long as there is something left */
 	do {
@@ -135,23 +134,62 @@ static int app_demo_HelloWorld__writeText(void)
 			break;
 
 		/* output the framebuffer */
-		if (app_demo_HelloWorld__writeFbToHanoverWrapper(invertColor) != 0)
+		if (app_demo_Watch__writeFbToHanoverWrapper(invertColor) != 0)
 			break;
-
-		/* sleep a while for the next chunk of data */
-		lib_support__sleep(1000);
 
 	} while(cTstatus != 0);
 
 	/* destroy the consecutiveText handle */
 	lib_font__consecutiveText_Destroy(&lib_font_cThdl);
 
-	/* sleep additional time before flushing the display */
-	lib_support__sleep(3000);
-
 	/* flush buffer */
 	memset(s_lib_font_fb.frameBuffer, 0x00, s_lib_font_fb.frameBufferHeight * s_lib_font_fb.frameBufferWidth);
-	app_demo_HelloWorld__writeFbToHanoverWrapper(invertColor);
+}
+
+
+static int app_demo_Watch()
+{
+	time_t rawtime;
+	struct tm * timeinfo;
+	int last_hour = -1;
+	int last_min = -1;
+	char timeToPrint[6];
+
+	while(1)
+	{
+		/* wait some time before checking again */
+		lib_support__sleep(250);
+
+		/* get unix timestamp */
+		time(&rawtime);
+
+		/* convert to localtime */
+		timeinfo = localtime(&rawtime);
+
+		/* don't print if time has not changed until last time of printing */
+		if ((timeinfo->tm_hour == last_hour) && (timeinfo->tm_min == last_min))
+			continue;
+
+		/* sanity check - todo improve */
+		if (timeinfo->tm_hour > 23 || timeinfo->tm_hour < 0)
+			return -1;
+		if (timeinfo->tm_min > 59 || timeinfo->tm_min < 0)
+			return -1;
+
+		/* convert timeinfo structure to ascii buffer */
+		sprintf(timeToPrint, "%02i:%02i\n", timeinfo->tm_hour, timeinfo->tm_min);
+
+		/* sanity again - todo: improve */
+		if (strlen(timeToPrint) != 6)
+			return -2;
+
+		/* put buffer to display */
+		app_demo_Watch__putText(timeToPrint);
+
+		/* backup the time information for the next round */
+		last_hour = timeinfo->tm_hour;
+		last_min  = timeinfo->tm_min;
+	}
 
 	return 0;
 }
@@ -161,18 +199,18 @@ static int app_demo_HelloWorld__writeText(void)
 int main(int argc, char *argv[])
 {
 	/* read user parameters */
-	if (app_demo_HelloWorld__readParams(argc, argv) != 0)
+	if (app_demo_Watch__readParams(argc, argv) != 0)
 		return 1;
 
 	/* init */
-	if (app_demo_HelloWorld__initialize() != 0)
+	if (app_demo_Watch__initialize() != 0)
 		return 1;
 
 	/* work */
-	app_demo_HelloWorld__writeText();
+	app_demo_Watch();
 
 	/* shutdown */
-	if (app_demo_HelloWorld__shutdown() != 0)
+	if (app_demo_Watch__shutdown() != 0)
 		return 1;
 
 	return 0;
